@@ -1,0 +1,33 @@
+﻿section,question,option,count
+Problemas,Dificil acceso al gimnasio,Si,28
+Problemas,Dificil acceso al gimnasio,No,19
+Problemas,Tamaño incomodo del gimnasio,Si,15
+Problemas,Tamaño incomodo del gimnasio,No,32
+Problemas,Tiempo dificil en la universidad,Si,18
+Problemas,Tiempo dificil en la universidad,No,29
+Problemas,Falta de guias en el gimnasio,Si,10
+Problemas,Falta de guias en el gimnasio,No,37
+Alimentacion,Comes frutas y/o verduras en tu dieta?,No,20
+Alimentacion,Comes frutas y/o verduras en tu dieta?,Si,27
+Alimentacion,"Si tu respuesta fue si, ¿Cuantas veces comes a la semana?",1 a 3 veces,7
+Alimentacion,"Si tu respuesta fue si, ¿Cuantas veces comes a la semana?",4 a 5 veces,15
+Alimentacion,"Si tu respuesta fue si, ¿Cuantas veces comes a la semana?",Todos los dias,5
+Alimentacion,"Consumes comida rapida? (Pizzas, Hamburguesas, Completos, Gohan/Sushi, Papas Fritas)",No,5
+Alimentacion,"Consumes comida rapida? (Pizzas, Hamburguesas, Completos, Gohan/Sushi, Papas Fritas)",Si,42
+Alimentacion,"Si tu respuesta fue si,¿Cuántas veces comes a la semana?",1 a 3 veces,30
+Alimentacion,"Si tu respuesta fue si,¿Cuántas veces comes a la semana?",4 a 5 veces,8
+Alimentacion,"Si tu respuesta fue si,¿Cuántas veces comes a la semana?",Todos los dias,4
+Alimentacion,¿Se informan acerca de lo que comen?,Me da lo mismo,13
+Alimentacion,¿Se informan acerca de lo que comen?,a veces me informo,20
+Alimentacion,¿Se informan acerca de lo que comen?,Si me informo,14
+Alimentacion,¿Crees que la universidad podria hacer mas en este aspecto?,No,10
+Alimentacion,¿Crees que la universidad podria hacer mas en este aspecto?,Podria hacer mas,25
+Alimentacion,¿Crees que la universidad podria hacer mas en este aspecto?,Definitivamente deberia hacer mas,12
+Salud Fisica,¿Realizas actividad fisica?,Si,26
+Salud Fisica,¿Realizas actividad fisica?,No,21
+Salud Fisica,¿Cuantas veces a la semana realizas actividad fisica?,1 a 3 veces,14
+Salud Fisica,¿Cuantas veces a la semana realizas actividad fisica?,4 a 5 veces,10
+Salud Fisica,¿Cuantas veces a la semana realizas actividad fisica?,Todos los dias,2
+Salud Fisica,¿Tipo de actividad fisica?,Levantamiento de pesas,8
+Salud Fisica,¿Tipo de actividad fisica?,Cardio,10
+Salud Fisica,¿Tipo de actividad fisica?,Ambas,8

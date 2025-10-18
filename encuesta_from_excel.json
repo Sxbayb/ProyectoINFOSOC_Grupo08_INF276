@@ -1,0 +1,120 @@
+{
+  "questions": [
+    {
+      "id": null,
+      "section": "Problemas",
+      "text": "Dificil acceso al gimnasio",
+      "type": "single",
+      "options": ["No", "Si"]
+    },    
+    {
+      "id": null,
+      "section": "Problemas",
+      "text": "Tamaño incomodo del gimnasio",
+      "type": "single",
+      "options": ["No", "Si"]
+    },
+    {
+      "id": null,
+      "section": "Problemas",
+      "text": "Tiempo dificil en la universidad",
+      "type": "single",
+      "options": ["No", "Si"]
+    },
+    {
+      "id": null,
+      "section": "Problemas",
+      "text": "Falta de guias en el gimnasio",
+      "type": "single",
+      "options": ["No", "Si"]
+    },
+    {
+      "id": null,
+      "section": "Alimentacion",
+      "text": "Comes frutas y/o verduras en tu dieta?",
+      "type": "single",
+      "options": ["No", "Si"]
+    },
+    {
+      "id": null,
+      "section": "Alimentacion",
+      "text": "Si tu respuesta fue si, ¿Cuantas veces comes a la semana?",
+      "type": "single",
+      "options": [
+        "1 a 3 veces",
+        "4 a 5 veces",
+        "Todos los dias"
+      ]
+    },
+    {
+      "id": null,
+      "section": "Alimentacion",
+      "text": "Consumes comida rapida? (Pizzas, Hamburguesas, Completos, Gohan/Sushi, Papas Fritas)",
+      "type": "single",
+      "options": ["No", "Si"]
+    },
+    {
+      "id": null,
+      "section": "Alimentacion",
+      "text": "Si tu respuesta fue si,¿Cuántas veces comes a la semana?",
+      "type": "single",
+      "options": [
+        "1 a 3 veces",
+        "4 a 5 veces",
+        "Todos los dias"
+      ]
+    },
+    {
+      "id": null,
+      "section": "Alimentacion",
+      "text": "¿Se informan acerca de lo que comen?",
+      "type": "single",
+      "options": [
+        "Me da lo mismo",
+        "a veces me informo",
+        "Si me informo"
+      ]
+    },
+    {
+      "id": null,
+      "section": "Alimentacion",
+      "text": "¿Crees que la universidad podria hacer mas en este aspecto?",
+      "type": "single",
+      "options": ["No",
+        "Podria hacer mas",
+        "Definitivamente deberia hacer mas"
+      ]
+    },
+    {
+      "id": null,
+      "section": "Salud Fisica",
+      "text": "¿Realizas actividad fisica?",
+      "type": "single",
+      "options": ["Si", "No"]
+    },
+    {
+      "id": null,
+      "section": "Salud Fisica",
+      "text": "¿Cuantas veces a la semana realizas actividad fisica?",
+      "type": "single",
+      "options": [
+        "1 a 3 veces",
+        "4 a 5 veces",
+        "Todos los dias"
+      ]
+    },
+    {
+      "id": null,
+      "section": "Salud Fisica",
+      "text": "¿Tipo de actividad fisica?",
+      "type": "single",
+      "options": [
+        "Levantamiento de pesas",
+        "Cardio",
+        "Ambas"
+      ]
+
+    }
+    
+  ]
+}
