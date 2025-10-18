@@ -36,6 +36,14 @@
             <div class="text-center mb-10">
                 <h2 class="text-3xl font-bold text-slate-700 mb-2">Resultados de la Encuesta</h2>
                 <p class="text-slate-500 max-w-2xl mx-auto">Análisis visual de las respuestas sobre los problemas, alimentación y salud física.</p>
+                
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLSc5XkDHOuZf2JHeJ1kYzNDe-pTEb-WYrSGoLaPWQ71otL_uqA/viewform" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   class="inline-block mt-4 bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 transition-colors shadow-md">
+                   ¡Vota aquí!
+                </a>
+
             </div>
 
             <!-- Sección de Problemas -->
@@ -76,44 +84,75 @@
 
             // --- LÓGICA DE LA APLICACIÓN DE GRÁFICOS ---
 
+            const normalizeString = (str) => {
+                if (!str) return '';
+                return str
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .toLowerCase()
+                    .replace(/[¿?¡!,.]/g, '')
+                    .trim();
+            };
+
             const parseSummaryCSV = (text) => {
-                const lines = text.trim().split('\n');
-                const header = lines[0].split(',');
+                const lines = text.trim().split(/\r?\n/);
+                const header = lines.shift().split(',');
                 const result = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i];
+                lines.forEach(line => {
                     const regex = /(?:\"([^\"]*)\"|([^,]+))/g;
                     let values = [];
                     let match;
                     while(match = regex.exec(line)) {
                         values.push(match[1] || match[2]);
                     }
-
                     if (values.length === header.length) {
                          const obj = {};
-                        for (let j = 0; j < header.length; j++) {
-                           const key = header[j].trim();
-                           const value = values[j].trim();
-                           obj[key] = key === 'count' ? parseInt(value, 10) : value;
-                        }
+                        header.forEach((key, j) => {
+                           const value = values[j];
+                           obj[key.trim()] = key.trim() === 'count' ? parseInt(value, 10) : value.trim();
+                        });
                         result.push(obj);
                     }
-                }
+                });
                 return result;
             };
 
+            // **FUNCIÓN CORREGIDA**: Ahora puede parsear correctamente el CSV de Google Forms.
             const parseRawGoogleSheetCSV = (text) => {
-                const lines = text.trim().split('\n');
+                const lines = text.trim().split(/\r?\n/);
                 if (lines.length < 2) return [];
-                const header = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+
+                const parseLine = (line) => {
+                    const values = [];
+                    let inQuotes = false;
+                    let field = '';
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        if (char === '"' && (i === 0 || line[i-1] !== '"')) {
+                            inQuotes = !inQuotes;
+                            continue;
+                        }
+                        if (char === ',' && !inQuotes) {
+                            values.push(field);
+                            field = '';
+                        } else {
+                            field += char;
+                        }
+                    }
+                    values.push(field);
+                    return values.map(v => v.trim());
+                };
+                
+                const header = parseLine(lines[0]);
                 const result = [];
+
                 for (let i = 1; i < lines.length; i++) {
-                    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                    const values = parseLine(lines[i]);
                     if (values.length === header.length) {
                         const obj = {};
-                        for (let j = 0; j < header.length; j++) {
-                            obj[header[j]] = values[j];
-                        }
+                        header.forEach((key, j) => {
+                            obj[key] = values[j];
+                        });
                         result.push(obj);
                     }
                 }
@@ -132,11 +171,16 @@
 
                 rawData.forEach(response => {
                     questionHeaders.forEach(header => {
-                        const matchingQuestion = structure.questions.find(q => header.includes(q.text));
+                        const normalizedHeader = normalizeString(header);
+                        const matchingQuestion = structure.questions.find(q => normalizedHeader.includes(normalizeString(q.text)));
+                        
                         if(matchingQuestion) {
                             const questionText = matchingQuestion.text;
-                            const answer = response[header];
+                            let answer = response[header];
                             if (answer) {
+                                if (normalizeString(answer) === 'si') {
+                                    answer = 'Si';
+                                }
                                 counts[questionText][answer] = (counts[questionText][answer] || 0) + 1;
                             }
                         }
@@ -173,12 +217,13 @@
 
             async function initializeApp() {
                 const googleSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSwQAawOukFYJfpuQnx5_BhpR1R1QbtaEhf167hrGWImQ-BFfkAocf_QGuMcHKoFV3ObWiDxyHhtwGU/pub?output=csv';
+                const cacheBustedURL = `${googleSheetURL}&t=${new Date().getTime()}`;
 
                 try {
                     const [localCsvResponse, structureResponse, googleSheetResponse] = await Promise.all([
                         fetch('encuesta_resultados_limpios.csv'),
                         fetch('encuesta_from_excel.json'),
-                        googleSheetURL.startsWith('http') ? fetch(googleSheetURL).catch(e => console.warn("No se pudo cargar la encuesta en vivo.", e)) : Promise.resolve(null)
+                        cacheBustedURL.startsWith('http') ? fetch(cacheBustedURL).catch(e => console.warn("No se pudo cargar la encuesta en vivo.", e)) : Promise.resolve(null)
                     ]);
 
                     if (!localCsvResponse.ok || !structureResponse.ok) {
@@ -280,3 +325,4 @@
     </script>
 </body>
 </html>
+
