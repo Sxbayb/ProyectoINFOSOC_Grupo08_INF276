@@ -1,4 +1,4 @@
-# ProyectoINFOSOC_Grupo08_INF
+# Proyecto Infosoc Gimnasio USM
 
 En este repositorio se trabajara el codigo de la app de Gimnasio USM del proyecto del ramo Ingenieria, Informatica y Sociedad
 
