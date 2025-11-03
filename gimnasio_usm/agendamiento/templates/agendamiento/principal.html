@@ -1,0 +1,40 @@
+<!-- Carga TailwindCSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- AÑADIDO: Fuentes para consistencia -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style> body { font-family: 'Inter', sans-serif; } </style>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto p-8">
+        <div class="flex justify-between items-center mb-10">
+            <h1 class="text-3xl font-bold">Portal de Bienestar</h1>
+            <div class="text-right">
+                <span class="text-gray-700">Hola, <strong>{{ user.username }}</strong></span>
+                <a href="{% url 'logout' %}" class="ml-4 text-sm text-blue-500 hover:text-blue-700">Cerrar Sesión</a>
+            </div>
+        </div>
+        
+        <!--  -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Opción 1: Agendar -->
+            <a href="{% url 'vista_agendamiento' %}" class="block bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div class="text-center">
+                    <span class="text-6xl">🏋️</span>
+                    <h2 class="mt-4 text-2xl font-bold text-gray-800">Agendar Hora</h2>
+                    <p class="mt-2 text-gray-600">Reserva tu bloque de horario para entrenar en el gimnasio.</p>
+                </div>
+            </a>
+            
+            <!-- Opción 2: Consejos y Resultados -->
+            <a href="{% url 'vista_consejos' %}" class="block bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div class="text-center">
+                    <span class="text-6xl">💡</span>
+                    <h2 class="mt-4 text-2xl font-bold text-gray-800">Consejos y Resultados</h2>
+                    <p class="mt-2 text-gray-600">Revisa los consejos de bienestar y mira los resultados de la encuesta.</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</body>
