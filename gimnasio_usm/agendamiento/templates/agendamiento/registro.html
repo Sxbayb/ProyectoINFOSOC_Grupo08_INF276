@@ -4,8 +4,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style> 
     body { font-family: 'Inter', sans-serif; } 
-    /* Estos estilos son necesarios porque Django renderiza los 
-       campos sin clases de Tailwind. ¡Está bien dejarlos! */
+    /* Estos estilos aplicarán al formulario de Django (UserCreationForm)
+      y harán que los campos de texto y contraseña se vean bien.
+    */
     input[type="text"], input[type="password"] {
         margin-top: 0.25rem;
         display: block;
@@ -20,6 +21,23 @@
         border-color: #3B82F6; /* focus:border-blue-500 */
         box-shadow: 0 0 0 1px #3B82F6; /* focus:ring-blue-500 */
     }
+    
+    /* Estilos para la lista de errores y ayudas del formulario */
+    .form-helpers {
+        font-size: 0.875rem; /* text-sm */
+        color: #6B7280; /* text-gray-500 */
+        margin-top: 0.5rem;
+    }
+    .form-helpers ul {
+        list-style-type: disc;
+        list-style-position: inside;
+        padding-left: 0.5rem;
+    }
+    .errorlist {
+        color: #EF4444; /* text-red-500 */
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
 </style>
 
 <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -27,45 +45,33 @@
     <div class="bg-white p-8 sm:p-10 rounded-xl shadow-md w-full max-w-md">
 
         <div class="text-center mb-8">
-            <span class="text-5xl">🧘</span> <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mt-4">Gimnasio USM</h1>
-            <p class="text-gray-500 mt-1">Inicia sesión para agendar tu hora</p>
+            <span class="text-5xl">🧘</span>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mt-4">Crea tu cuenta</h1>
+            <p class="text-gray-500 mt-1">Regístrate para agendar tu hora</p>
         </div>
         
-        {% if form.errors %}
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert">
-                <p class="font-bold">Error de acceso</p>
-                <p>Tu usuario o contraseña no son correctos. Por favor, inténtalo de nuevo.</p>
-            </div>
-        {% endif %}
-
-        <form method="post" action="{% url 'login' %}">
+        <form method="post" action="{% url 'registro' %}">
             {% csrf_token %}
-            <div class="space-y-5">
-                <div>
-                    <label for="id_username" class="block text-sm font-medium text-gray-700">Usuario</label>
-                    {{ form.username }}
-                </div>
-                <div>
-                    <label for="id_password" class="block text-sm font-medium text-gray-700">Contraseña</label>
-                    {{ form.password }}
-                </div>
+            
+            <div class="space-y-4">
+                {{ form.as_p }}
             </div>
             
             <div class="mt-8">
                 <button type="submit" class="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-sm">
-                    Entrar
+                    Registrarme
                 </button>
             </div>
         </form>
         
         <div class="text-center mt-6">
             <p class="text-sm text-gray-600">
-                ¿No tienes una cuenta? 
-                <a href="{% url 'registro' %}" class="font-medium text-blue-600 hover:text-blue-500">
-                    Regístrate aquí
+                ¿Ya tienes una cuenta? 
+                <a href="{% url 'login' %}" class="font-medium text-blue-600 hover:text-blue-500">
+                    Inicia sesión aquí
                 </a>
             </p>
         </div>
-        
+
     </div>
 </div>

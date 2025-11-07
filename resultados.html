@@ -4,51 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resultados de Encuesta de Bienestar</title>
+    <!-- SECCIÓN <head> AÑADIDA -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
+    <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
 <body class="bg-slate-100 text-slate-800">
 
     <!-- Encabezado -->
     <header class="bg-white shadow-md sticky top-0 z-20">
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-2xl md:text-3xl font-bold text-blue-600">Encuesta de Bienestar</h1>
+            <h1 class="text-2xl md:text-3xl font-bold text-blue-600">Resultados de Encuesta</h1>
             <nav>
-                <a href="consejos.html" class="text-blue-500 hover:text-blue-700 font-semibold">💡 Ver Consejos</a>
+                <a href="{% url 'vista_consejos' %}" class="text-gray-500 hover:text-gray-700 text-sm">
+                    Volver a Consejos
+                </a>
             </nav>
         </div>
     </header>
 
     <!-- Contenido Principal -->
     <main class="container mx-auto p-4 md:p-8">
-
-        <!-- Vista de Gráficos -->
         <div id="charts-view">
             <div class="text-center mb-10">
                 <h2 class="text-3xl font-bold text-slate-700 mb-2">Resultados de la Encuesta</h2>
-                <p class="text-slate-500 max-w-2xl mx-auto">Análisis visual de las respuestas sobre los problemas, alimentación y salud física.</p>
                 
-
-                <p class="mt-6 text-slate-600 font-semibold">¡Tu opinión es importante! Ayuda a enriquecer estos datos.</p>
-                
-                <a href="https://docs.google.com/forms/d/e/1FAIpQLSc5XkDHOuZf2JHeJ1kYzNDe-pTEb-WYrSGoLaPWQ71otL_uqA/viewform" 
-                   target="_blank" 
-                   rel="noopener noreferrer"
-                   class="inline-block mt-4 bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 transition-colors shadow-md">
-                   ¡Vota aquí!
-                </a>
-
+                {% if error %}
+                    <p class="text-red-500 max-w-2xl mx-auto">{{ error }}</p>
+                {% else %}
+                    <p class="text-slate-500 max-w-2xl mx-auto">
+                        Análisis visual de las respuestas sobre los problemas, alimentación y salud física de un total de {{ total_responses }} encuestados.
+                    </p>
+                    
+                    <p class="mt-6 text-slate-600 font-semibold">¡Tu opinión es importante! Ayuda a enriquecer estos datos.</p>
+                    <a href="{{ gform_url }}" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="inline-block mt-2 bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 transition-colors shadow-md">
+                       ¡Vota aquí!
+                    </a>
+                {% endif %}
             </div>
 
+            {% if not error %}
             <!-- Sección de Problemas -->
             <section id="problemas" class="mb-12">
                 <h3 class="text-2xl font-bold border-l-4 border-red-500 pl-4 mb-6">Problemas</h3>
@@ -72,227 +74,57 @@
                     <!-- Los gráficos se insertarán aquí por JS -->
                 </div>
             </section>
+            {% endif %}
         </div>
     </main>
 
-    <!-- Pie de página -->
     <footer class="bg-white mt-12 py-6">
         <div class="container mx-auto text-center text-slate-500">
-            <p>2025 Análisis de Encuesta INFOSOC.</p>
+            <p>&copy; 2025 Análisis de Encuesta INFOSOC. Todos los derechos reservados.</p>
         </div>
     </footer>
 
+    <!-- Pasamos los datos de Django (Python) a JavaScript -->
+    {{ chart_data_json|json_script:"chart-data" }}
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Registramos el plugin de etiquetas
+            Chart.register(ChartDataLabels);
 
-            // --- LÓGICA DE LA APLICACIÓN DE GRÁFICOS ---
+            // Leemos los datos procesados por Python
+            const chartData = JSON.parse(document.getElementById('chart-data').textContent);
 
-            const normalizeString = (str) => {
-                if (!str) return '';
-                return str
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .toLowerCase()
-                    .replace(/[¿?¡!,.]/g, '')
-                    .trim();
-            };
-
-            const parseSummaryCSV = (text) => {
-                const lines = text.trim().split(/\r?\n/);
-                const header = lines.shift().split(',');
-                const result = [];
-                lines.forEach(line => {
-                    const regex = /(?:\"([^\"]*)\"|([^,]+))/g;
-                    let values = [];
-                    let match;
-                    while(match = regex.exec(line)) {
-                        values.push(match[1] || match[2]);
-                    }
-                    if (values.length === header.length) {
-                         const obj = {};
-                        header.forEach((key, j) => {
-                           const value = values[j];
-                           obj[key.trim()] = key.trim() === 'count' ? parseInt(value, 10) : value.trim();
-                        });
-                        result.push(obj);
-                    }
-                });
+            const generateColors = (numColors) => {
+                const colors = ['#3b82f6', '#16a34a', '#ef4444', '#f97316', '#8b5cf6', '#06b6d4', '#d946ef', '#fde047'];
+                let result = [];
+                for (let i = 0; i < numColors; i++) result.push(colors[i % colors.length]);
                 return result;
             };
 
-            // **FUNCIÓN CORREGIDA**: Ahora puede parsear correctamente el CSV de Google Forms.
-            const parseRawGoogleSheetCSV = (text) => {
-                const lines = text.trim().split(/\r?\n/);
-                if (lines.length < 2) return [];
-
-                const parseLine = (line) => {
-                    const values = [];
-                    let inQuotes = false;
-                    let field = '';
-                    for (let i = 0; i < line.length; i++) {
-                        const char = line[i];
-                        if (char === '"' && (i === 0 || line[i-1] !== '"')) {
-                            inQuotes = !inQuotes;
-                            continue;
-                        }
-                        if (char === ',' && !inQuotes) {
-                            values.push(field);
-                            field = '';
-                        } else {
-                            field += char;
-                        }
-                    }
-                    values.push(field);
-                    return values.map(v => v.trim());
-                };
-                
-                const header = parseLine(lines[0]);
-                const result = [];
-
-                for (let i = 1; i < lines.length; i++) {
-                    const values = parseLine(lines[i]);
-                    if (values.length === header.length) {
-                        const obj = {};
-                        header.forEach((key, j) => {
-                            obj[key] = values[j];
-                        });
-                        result.push(obj);
-                    }
-                }
-                return result;
-            };
-
-            const processGoogleSheetData = (rawData, structure) => {
-                const counts = {};
-                const questionToSection = {};
-                structure.questions.forEach(q => {
-                    questionToSection[q.text] = q.section;
-                    counts[q.text] = {};
-                });
-
-                const questionHeaders = Object.keys(rawData[0] || {});
-
-                rawData.forEach(response => {
-                    questionHeaders.forEach(header => {
-                        const normalizedHeader = normalizeString(header);
-                        const matchingQuestion = structure.questions.find(q => normalizedHeader.includes(normalizeString(q.text)));
-                        
-                        if(matchingQuestion) {
-                            const questionText = matchingQuestion.text;
-                            let answer = response[header];
-                            if (answer) {
-                                if (normalizeString(answer) === 'si') {
-                                    answer = 'Si';
-                                }
-                                counts[questionText][answer] = (counts[questionText][answer] || 0) + 1;
-                            }
-                        }
-                    });
-                });
-
-                const flatResults = [];
-                for (const question in counts) {
-                    const section = questionToSection[question];
-                    for (const option in counts[question]) {
-                        flatResults.push({
-                            section: section,
-                            question: question,
-                            option: option,
-                            count: counts[question][option]
-                        });
-                    }
-                }
-                return flatResults;
-            };
-            
-            const combineData = (localData, liveData) => {
-                const combined = {};
-                [...localData, ...liveData].forEach(item => {
-                    const key = `${item.question}|${item.option}`;
-                    if (combined[key]) {
-                        combined[key].count += item.count;
-                    } else {
-                        combined[key] = { ...item };
-                    }
-                });
-                return Object.values(combined);
-            };
-
-            async function initializeApp() {
-                const googleSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSwQAawOukFYJfpuQnx5_BhpR1R1QbtaEhf167hrGWImQ-BFfkAocf_QGuMcHKoFV3ObWiDxyHhtwGU/pub?output=csv';
-                const cacheBustedURL = `${googleSheetURL}&t=${new Date().getTime()}`;
-
-                try {
-                    const [localCsvResponse, structureResponse, googleSheetResponse] = await Promise.all([
-                        fetch('encuesta_resultados_limpios.csv'),
-                        fetch('encuesta_from_excel.json'),
-                        cacheBustedURL.startsWith('http') ? fetch(cacheBustedURL).catch(e => console.warn("No se pudo cargar la encuesta en vivo.", e)) : Promise.resolve(null)
-                    ]);
-
-                    if (!localCsvResponse.ok || !structureResponse.ok) {
-                        throw new Error('No se pudieron cargar los archivos de datos base.');
-                    }
-
-                    const localCsvText = await localCsvResponse.text();
-                    const localData = parseSummaryCSV(localCsvText);
-                    const surveyStructure = await structureResponse.json();
-
-                    let liveData = [];
-                    if (googleSheetResponse && googleSheetResponse.ok) {
-                        const googleSheetCsvText = await googleSheetResponse.text();
-                        const rawGSheetData = parseRawGoogleSheetCSV(googleSheetCsvText);
-                        if (rawGSheetData.length > 0) {
-                           liveData = processGoogleSheetData(rawGSheetData, surveyStructure);
-                        }
-                    }
-
-                    const combinedData = combineData(localData, liveData);
-
-                    const firstQuestionText = surveyStructure.questions[0].text;
-                    const totalResponses = combinedData
-                        .filter(d => d.question === firstQuestionText)
-                        .reduce((sum, item) => sum + item.count, 0);
-
-                    document.querySelector('#charts-view .text-center p').textContent = `Análisis visual de las respuestas sobre los problemas, alimentación y salud física de un total de ${totalResponses} encuestados.`;
-
-                    renderCharts(surveyStructure, combinedData);
-                    
-                } catch (error) {
-                    console.error('Error al inicializar la aplicación:', error);
-                    document.querySelector('#charts-view .text-center p').textContent = 'Error al cargar los datos de la encuesta. Por favor, intente de nuevo más tarde.';
-                }
-            }
-
-            function renderCharts(structure, results) {
-                const generateColors = (numColors) => {
-                    const colors = ['#3b82f6', '#16a34a', '#ef4444', '#f97316', '#8b5cf6', '#06b6d4', '#d946ef', '#fde047'];
-                    let result = [];
-                    for (let i = 0; i < numColors; i++) result.push(colors[i % colors.length]);
-                    return result;
-                };
-
-                ['problemas', 'alimentacion', 'salud-fisica'].forEach(id => document.getElementById(`charts-${id}-container`).innerHTML = '');
-
-                structure.questions.forEach((questionInfo, index) => {
-                    const questionDataFiltered = results.filter(r => r.question === questionInfo.text);
-                    if (questionDataFiltered.length === 0) return;
-
-                    const labels = questionDataFiltered.map(item => item.option);
-                    const data = questionDataFiltered.map(item => item.count);
-                    const section = questionDataFiltered[0].section;
+            function renderCharts(allChartData) {
+                // Iteramos por cada sección: 'Problemas', 'Alimentacion', 'Salud Fisica'
+                for (const [section, charts] of Object.entries(allChartData)) {
                     const containerId = `charts-${section.toLowerCase().replace(' ', '-')}-container`;
                     const container = document.getElementById(containerId);
+                    if (!container) continue;
+                    
+                    container.innerHTML = ''; // Limpiamos
 
-                    if (container) {
+                    // Iteramos por cada gráfico de la sección
+                    charts.forEach((chartInfo, index) => {
                         const card = document.createElement('div');
                         card.className = 'bg-white p-6 rounded-lg shadow-lg transition-transform hover:scale-105';
+                        
                         const title = document.createElement('h4');
                         title.className = 'text-lg font-semibold mb-4 text-center text-slate-700';
-                        title.textContent = questionInfo.text;
+                        title.textContent = chartInfo.title;
+                        
                         const canvasContainer = document.createElement('div');
                         canvasContainer.className = 'w-full h-64 mx-auto';
+                        
                         const canvas = document.createElement('canvas');
-                        canvas.id = `chart-${index}`;
+                        canvas.id = `chart-${section}-${index}`;
                         
                         canvasContainer.appendChild(canvas);
                         card.appendChild(title);
@@ -301,7 +133,15 @@
 
                         new Chart(canvas, {
                             type: 'doughnut',
-                            data: { labels: labels, datasets: [{ data: data, backgroundColor: generateColors(data.length), borderColor: '#ffffff', borderWidth: 2 }] },
+                            data: {
+                                labels: chartInfo.labels,
+                                datasets: [{
+                                    data: chartInfo.data,
+                                    backgroundColor: generateColors(chartInfo.data.length),
+                                    borderColor: '#ffffff',
+                                    borderWidth: 2
+                                }]
+                            },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
@@ -319,13 +159,14 @@
                                 }
                             }
                         });
-                    }
-                });
+                    });
+                }
             }
 
-            initializeApp();
+            if (chartData) {
+                renderCharts(chartData);
+            }
         });
     </script>
 </body>
 </html>
-
