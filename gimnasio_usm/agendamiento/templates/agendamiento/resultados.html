@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resultados de Encuesta de Bienestar</title>
-    <!-- SECCIÓN <head> AÑADIDA -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,66 +15,50 @@
 </head>
 <body class="bg-slate-100 text-slate-800">
 
-    <!-- Encabezado -->
     <header class="bg-white shadow-md sticky top-0 z-20">
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
             <h1 class="text-2xl md:text-3xl font-bold text-blue-600">Resultados de Encuesta</h1>
-            <nav>
+            <nav class="flex items-center space-x-4">
                 <a href="{% url 'vista_consejos' %}" class="text-gray-500 hover:text-gray-700 text-sm">
                     Volver a Consejos
                 </a>
+                 <a href="{% url 'vista_principal' %}" class="text-gray-500 hover:text-gray-700 text-sm ml-4">
+                    Menú Principal
+                 </a>
             </nav>
         </div>
     </header>
 
-    <!-- Contenido Principal -->
     <main class="container mx-auto p-4 md:p-8">
         <div id="charts-view">
             <div class="text-center mb-10">
                 <h2 class="text-3xl font-bold text-slate-700 mb-2">Resultados de la Encuesta</h2>
                 
-                {% if error %}
-                    <p class="text-red-500 max-w-2xl mx-auto">{{ error }}</p>
-                {% else %}
-                    <p class="text-slate-500 max-w-2xl mx-auto">
-                        Análisis visual de las respuestas sobre los problemas, alimentación y salud física de un total de {{ total_responses }} encuestados.
-                    </p>
-                    
-                    <p class="mt-6 text-slate-600 font-semibold">¡Tu opinión es importante! Ayuda a enriquecer estos datos.</p>
-                    <a href="{{ gform_url }}" 
-                       target="_blank" 
-                       rel="noopener noreferrer"
-                       class="inline-block mt-2 bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 transition-colors shadow-md">
-                       ¡Vota aquí!
-                    </a>
-                {% endif %}
+                <p id="total-responses-p" class="text-slate-500 max-w-2xl mx-auto">
+                    Cargando análisis de las respuestas...
+                </p>
+                
+                <p class="mt-6 text-slate-600 font-semibold">¡Tu opinión es importante! Ayuda a enriquecer estos datos.</p>
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLSc5XkDHOuZf2JHeJ1kYzNDe-pTEb-WYrSGoLaPWQ71otL_uqA/viewform?usp=header" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   class="inline-block mt-2 bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 transition-colors shadow-md">
+                   ¡Vota aquí!
+                </a>
             </div>
 
-            {% if not error %}
-            <!-- Sección de Problemas -->
             <section id="problemas" class="mb-12">
                 <h3 class="text-2xl font-bold border-l-4 border-red-500 pl-4 mb-6">Problemas</h3>
-                <div id="charts-problemas-container" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Los gráficos se insertarán aquí por JS -->
-                </div>
+                <div id="charts-problemas-container" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
             </section>
-
-            <!-- Sección de Alimentación -->
             <section id="alimentacion" class="mb-12">
                 <h3 class="text-2xl font-bold border-l-4 border-green-500 pl-4 mb-6">Alimentación</h3>
-                <div id="charts-alimentacion-container" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Los gráficos se insertarán aquí por JS -->
-                </div>
+                <div id="charts-alimentacion-container" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
             </section>
-
-            <!-- Sección de Salud Física -->
             <section id="salud-fisica" class="mb-12">
                 <h3 class="text-2xl font-bold border-l-4 border-sky-500 pl-4 mb-6">Salud Física</h3>
-                <div id="charts-salud-fisica-container" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Los gráficos se insertarán aquí por JS -->
-                </div>
+                <div id="charts-salud-fisica-container" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
             </section>
-            {% endif %}
         </div>
     </main>
 
@@ -84,47 +68,193 @@
         </div>
     </footer>
 
-    <!-- Pasamos los datos de Django (Python) a JavaScript -->
-    {{ chart_data_json|json_script:"chart-data" }}
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Registramos el plugin de etiquetas
             Chart.register(ChartDataLabels);
 
-            // Leemos los datos procesados por Python
-            const chartData = JSON.parse(document.getElementById('chart-data').textContent);
+            // --- DATOS LOCALES INCRUSTADOS ---
+            // 1. Estructura del JSON (Tu encuesta_from_excel.json)
+            const surveyStructure = {
+                "questions": [
+                    {"section": "Problemas", "text": "Dificil acceso al gimnasio"},
+                    {"section": "Problemas", "text": "Tamaño incomodo del gimnasio"},
+                    {"section": "Problemas", "text": "Tiempo dificil en la universidad"},
+                    {"section": "Problemas", "text": "Falta de guias en el gimnasio"},
+                    {"section": "Alimentacion", "text": "Comes frutas y/o verduras en tu dieta?"},
+                    {"section": "Alimentacion", "text": "Si tu respuesta fue si, ¿Cuantas veces comes a la semana?"},
+                    {"section": "Alimentacion", "text": "Consumes comida rapida? (Pizzas, Hamburguesas, Completos, Gohan/Sushi, Papas Fritas)"},
+                    {"section": "Alimentacion", "text": "Si tu respuesta fue si,¿Cuántas veces comes a la semana?"},
+                    {"section": "Alimentacion", "text": "¿Se informan acerca de lo que comen?"},
+                    {"section": "Alimentacion", "text": "¿Crees que la universidad podria hacer mas en este aspecto?"},
+                    {"section": "Salud Fisica", "text": "¿Realizas actividad fisica?"},
+                    {"section": "Salud Fisica", "text": "¿Cuantas veces a la semana realizas actividad fisica?"},
+                    {"section": "Salud Fisica", "text": "¿Tipo de actividad fisica?"}
+                ]
+            };
+            
+            // 2. Datos del CSV local (Tu encuesta_resultados_limpios.csv)
+            const localData = [
+                {section: "Problemas", question: "Dificil acceso al gimnasio", option: "Si", count: 28},
+                {section: "Problemas", question: "Dificil acceso al gimnasio", option: "No", count: 19},
+                {section: "Problemas", question: "Tamaño incomodo del gimnasio", option: "Si", count: 15},
+                {section: "Problemas", question: "Tamaño incomodo del gimnasio", option: "No", count: 32},
+                {section: "Problemas", question: "Tiempo dificil en la universidad", option: "Si", count: 18},
+                {section: "Problemas", question: "Tiempo dificil en la universidad", option: "No", count: 29},
+                {section: "Problemas", question: "Falta de guias en el gimnasio", option: "Si", count: 10},
+                {section: "Problemas", question: "Falta de guias en el gimnasio", option: "No", count: 37},
+                {section: "Alimentacion", question: "Comes frutas y/o verduras en tu dieta?", option: "No", count: 20},
+                {section: "Alimentacion", question: "Comes frutas y/o verduras en tu dieta?", option: "Si", count: 27},
+                {section: "Alimentacion", question: "Si tu respuesta fue si, ¿Cuantas veces comes a la semana?", option: "1 a 3 veces", count: 7},
+                {section: "Alimentacion", question: "Si tu respuesta fue si, ¿Cuantas veces comes a la semana?", option: "4 a 5 veces", count: 15},
+                {section: "Alimentacion", question: "Si tu respuesta fue si, ¿Cuantas veces comes a la semana?", option: "Todos los dias", count: 5},
+                {section: "Alimentacion", question: "Consumes comida rapida? (Pizzas, Hamburguesas, Completos, Gohan/Sushi, Papas Fritas)", option: "No", count: 5},
+                {section: "Alimentacion", question: "Consumes comida rapida? (Pizzas, Hamburguesas, Completos, Gohan/Sushi, Papas Fritas)", option: "Si", count: 42},
+                {section: "Alimentacion", question: "Si tu respuesta fue si,¿Cuántas veces comes a la semana?", option: "1 a 3 veces", count: 30},
+                {section: "Alimentacion", question: "Si tu respuesta fue si,¿Cuántas veces comes a la semana?", option: "4 a 5 veces", count: 8},
+                {section: "Alimentacion", question: "Si tu respuesta fue si,¿Cuántas veces comes a la semana?", option: "Todos los dias", count: 4},
+                {section: "Alimentacion", question: "¿Se informan acerca de lo que comen?", option: "Me da lo mismo", count: 13},
+                {section: "Alimentacion", question: "¿Se informan acerca de lo que comen?", option: "a veces me informo", count: 20},
+                {section: "Alimentacion", question: "¿Se informan acerca de lo que comen?", option: "Si me informo", count: 14},
+                {section: "Alimentacion", question: "¿Crees que la universidad podria hacer mas en este aspecto?", option: "No", count: 10},
+                {section: "Alimentacion", question: "¿Crees que la universidad podria hacer mas en este aspecto?", option: "Podria hacer mas", count: 25},
+                {section: "Alimentacion", question: "¿Crees que la universidad podria hacer mas en este aspecto?", option: "Definitivamente deberia hacer mas", count: 12},
+                {section: "Salud Fisica", question: "¿Realizas actividad fisica?", option: "Si", count: 26},
+                {section: "Salud Fisica", question: "¿Realizas actividad fisica?", option: "No", count: 21},
+                {section: "Salud Fisica", question: "¿Cuantas veces a la semana realizas actividad fisica?", option: "1 a 3 veces", count: 14},
+                {section: "Salud Fisica", question: "¿Cuantas veces a la semana realizas actividad fisica?", option: "4 a 5 veces", count: 10},
+                {section: "Salud Fisica", question: "¿Cuantas veces a la semana realizas actividad fisica?", option: "Todos los dias", count: 2},
+                {section: "Salud Fisica", question: "¿Tipo de actividad fisica?", option: "Levantamiento de pesas", count: 8},
+                {section: "Salud Fisica", question: "¿Tipo de actividad fisica?", option: "Cardio", count: 10},
+                {section: "Salud Fisica", question: "¿Tipo de actividad fisica?", option: "Ambas", count: 8}
+            ];
 
-            const generateColors = (numColors) => {
-                const colors = ['#3b82f6', '#16a34a', '#ef4444', '#f97316', '#8b5cf6', '#06b6d4', '#d946ef', '#fde047'];
-                let result = [];
-                for (let i = 0; i < numColors; i++) result.push(colors[i % colors.length]);
-                return result;
+            // --- LÓGICA DE CARGA DE DATOS (Toda en JS) ---
+            
+            const normalizeString = (str) => {
+                if (!str) return '';
+                return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[¿?¡!,.]/g, '').trim();
             };
 
-            function renderCharts(allChartData) {
-                // Iteramos por cada sección: 'Problemas', 'Alimentacion', 'Salud Fisica'
-                for (const [section, charts] of Object.entries(allChartData)) {
+            const parseRawGoogleSheetCSV = (text) => {
+                const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+                if (parsed.errors.length > 0) console.error("Errores al parsear CSV de Google:", parsed.errors);
+                return parsed.data;
+            };
+
+            const processGoogleSheetData = (rawData, structure) => {
+                const counts = {};
+                const questionToSection = {};
+                structure.questions.forEach(q => {
+                    questionToSection[q.text] = q.section;
+                    counts[q.text] = {};
+                });
+
+                const questionHeaders = Object.keys(rawData[0] || {});
+
+                rawData.forEach(response => {
+                    questionHeaders.forEach(header => {
+                        const normalizedHeader = normalizeString(header);
+                        const matchingQuestion = structure.questions.find(q => normalizedHeader.includes(normalizeString(q.text)));
+                        
+                        if(matchingQuestion) {
+                            const questionText = matchingQuestion.text;
+                            let answer = response[header];
+                            if (answer) {
+                                if (normalizeString(answer) === 'si') answer = 'Si';
+                                counts[questionText][answer] = (counts[questionText][answer] || 0) + 1;
+                            }
+                        }
+                    });
+                });
+
+                const flatResults = [];
+                for (const question in counts) {
+                    const section = questionToSection[question];
+                    for (const option in counts[question]) {
+                        flatResults.push({ section: section, question: question, option: option, count: counts[question][option] });
+                    }
+                }
+                return flatResults;
+            };
+            
+            const combineData = (local, live) => {
+                const combined = {};
+                [...local, ...live].forEach(item => {
+                    const key = `${item.question}|${item.option}`;
+                    if (combined[key]) {
+                        combined[key].count += item.count;
+                    } else {
+                        combined[key] = { ...item };
+                    }
+                });
+                return Object.values(combined);
+            };
+
+            async function initializeApp() {
+                const googleSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSwQAawOukFYJfpuQnx5_BhpR1R1QbtaEhf167hrGWImQ-BFfkAocf_QGuMcHKoFV3ObWiDxyHhtwGU/pub?output=csv';
+                const cacheBustedURL = `${googleSheetURL}&t=${new Date().getTime()}`;
+
+                let liveData = [];
+                try {
+                    const response = await fetch(cacheBustedURL);
+                    if (response.ok) {
+                        const googleSheetCsvText = await response.text();
+                        const rawGSheetData = parseRawGoogleSheetCSV(googleSheetCsvText);
+                        if (rawGSheetData.length > 0) {
+                           liveData = processGoogleSheetData(rawGSheetData, surveyStructure);
+                        }
+                    } else {
+                        console.warn("No se pudo cargar la encuesta en vivo. Mostrando solo datos locales.");
+                    }
+                } catch (e) {
+                    console.error("Error al cargar encuesta en vivo:", e);
+                }
+
+                const combinedData = combineData(localData, liveData);
+
+                const firstQuestionText = surveyStructure.questions[0].text;
+                const totalResponses = combinedData
+                    .filter(d => d.question === firstQuestionText)
+                    .reduce((sum, item) => sum + item.count, 0);
+
+                document.getElementById('total-responses-p').textContent = `Análisis visual de las respuestas sobre los problemas, alimentación y salud física de un total de ${totalResponses} encuestados.`;
+
+                renderCharts(surveyStructure, combinedData);
+            }
+
+            function renderCharts(structure, results) {
+                const generateColors = (numColors) => {
+                    const colors = ['#3b82f6', '#16a34a', '#ef4444', '#f97316', '#8b5cf6', '#06b6d4', '#d946ef', '#fde047'];
+                    let result = [];
+                    for (let i = 0; i < numColors; i++) result.push(colors[i % colors.length]);
+                    return result;
+                };
+
+                ['problemas', 'alimentacion', 'salud-fisica'].forEach(id => {
+                    const container = document.getElementById(`charts-${id}-container`);
+                    if(container) container.innerHTML = '';
+                });
+
+                structure.questions.forEach((questionInfo, index) => {
+                    const questionDataFiltered = results.filter(r => r.question === questionInfo.text);
+                    if (questionDataFiltered.length === 0) return;
+
+                    const labels = questionDataFiltered.map(item => item.option);
+                    const data = questionDataFiltered.map(item => item.count);
+                    const section = questionInfo.section;
                     const containerId = `charts-${section.toLowerCase().replace(' ', '-')}-container`;
                     const container = document.getElementById(containerId);
-                    if (!container) continue;
-                    
-                    container.innerHTML = ''; // Limpiamos
 
-                    // Iteramos por cada gráfico de la sección
-                    charts.forEach((chartInfo, index) => {
+                    if (container) {
                         const card = document.createElement('div');
                         card.className = 'bg-white p-6 rounded-lg shadow-lg transition-transform hover:scale-105';
-                        
                         const title = document.createElement('h4');
                         title.className = 'text-lg font-semibold mb-4 text-center text-slate-700';
-                        title.textContent = chartInfo.title;
-                        
+                        title.textContent = questionInfo.text;
                         const canvasContainer = document.createElement('div');
                         canvasContainer.className = 'w-full h-64 mx-auto';
-                        
                         const canvas = document.createElement('canvas');
-                        canvas.id = `chart-${section}-${index}`;
+                        canvas.id = `chart-${index}`;
                         
                         canvasContainer.appendChild(canvas);
                         card.appendChild(title);
@@ -133,15 +263,7 @@
 
                         new Chart(canvas, {
                             type: 'doughnut',
-                            data: {
-                                labels: chartInfo.labels,
-                                datasets: [{
-                                    data: chartInfo.data,
-                                    backgroundColor: generateColors(chartInfo.data.length),
-                                    borderColor: '#ffffff',
-                                    borderWidth: 2
-                                }]
-                            },
+                            data: { labels: labels, datasets: [{ data: data, backgroundColor: generateColors(data.length), borderColor: '#ffffff', borderWidth: 2 }] },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
@@ -159,13 +281,11 @@
                                 }
                             }
                         });
-                    });
-                }
+                    }
+                });
             }
 
-            if (chartData) {
-                renderCharts(chartData);
-            }
+            initializeApp();
         });
     </script>
 </body>

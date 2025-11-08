@@ -16,7 +16,6 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include 
-# Ya no necesitamos RedirectView aquí
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
@@ -30,7 +29,6 @@ urlpatterns = [
     # Conecta la raíz del sitio a las URLs de tu app
     path('', include('agendamiento.urls')),
 
-    path('logout/', auth_views.LogoutView.as_view(template_name='nombre_de_tu_app/logged_out.html'), name='logout'),
 ]
 
 # Añade esto al final para servir archivos estáticos (como tus CSV/JSON)

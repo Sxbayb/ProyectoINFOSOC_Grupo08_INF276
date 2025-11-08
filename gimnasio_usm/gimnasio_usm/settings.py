@@ -122,10 +122,12 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-# AÑADE ESTA LÍNEA para decirle a Django dónde encontrar tu carpeta 'static'
+# --- CORRECCIÓN APLICADA ---
+# Le dice a Django dónde encontrar tu carpeta 'static' que contiene los 'data'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
+    BASE_DIR / 'static',
 ]
+# ---------------------------
 
 # --- Configuración de Login ---
 # AÑADE ESTA LÍNEA para redirigir al usuario a la página principal después del login

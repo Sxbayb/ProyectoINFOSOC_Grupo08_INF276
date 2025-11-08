@@ -11,9 +11,9 @@ import pandas as pd # Necesita `pip install pandas`
 import requests     # Necesita `pip install requests`
 import json
 import io
-import os
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
+import unicodedata
 
 # -----------------------------------------------------------------
 # VISTA 1: Página Principal (NUEVA)
@@ -144,155 +144,27 @@ def vista_agendamiento(request):
     return render(request, 'agendamiento/agendar.html', context)
 
 # -----------------------------------------------------------------
-# VISTA 3: Consejos (NUEVA)
+# VISTA 3: Consejos
 # -----------------------------------------------------------------
 @login_required
 def vista_consejos(request):
     """Muestra la página de consejos."""
     return render(request, 'agendamiento/consejos.html')
 
-
 # -----------------------------------------------------------------
-# VISTA 4: Resultados (Gráficos) (NUEVA Y COMPLEJA)
+# VISTA 4: Resultados (Gráficos)
 # -----------------------------------------------------------------
-def normalize_string(s):
-    """Normaliza strings para comparar cabeceras de CSV."""
-    if not isinstance(s, str):
-        return ""
-
-    # Eliminamos s.normalize("NFD") que estaba causando el error
-    # y las líneas encode/decode que eran redundantes.
-    return s.replace("¿", "").replace("?", "").replace("(", "").replace(")", "").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u").lower().strip()
-    
-def get_survey_data():
-    """Función para procesar los datos de la encuesta en Python."""
-    
-    # --- 1. Definir rutas a los archivos ---
-    static_dir = settings.STATICFILES_DIRS[0]
-    local_csv_path = os.path.join(static_dir, 'data', 'encuesta_resultados_limpios.csv')
-    structure_json_path = os.path.join(static_dir, 'data', 'encuesta_from_excel.json')
-# ESTAS LÍNEAS ESTÁN CORREGIDAS
-    google_sheet_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSwQAawOukFYJfpuQnx5_BhpR1R1QbtaEhf167hrGWImQ-BFfkAocf_QGuMcHKoFV3ObWiDxyHhtwGU/pub?output=csv'
-    google_form_url = 'https://docs.google.com/forms/d/e/1FAIpQLSc5XkDHOuZf2JHeJ1kYzNDe-pTEb-WYrSGoLaPWQ71otL_uqA/viewform?usp=header'
-    # --- 2. Cargar datos base ---
-    try:
-        local_data = pd.read_csv(local_csv_path)
-    except Exception as e:
-        print(f"Error cargando CSV local: {e}")
-        local_data = pd.DataFrame(columns=['section', 'question', 'option', 'count'])
-
-    try:
-        with open(structure_json_path, 'r', encoding='utf-8') as f:
-            survey_structure = json.load(f)
-        questions_list = survey_structure.get('questions', [])
-    except Exception as e:
-        print(f"Error cargando JSON de estructura: {e}")
-        questions_list = []
-
-    # --- 3. Cargar datos de Google Sheet ---
-    live_data_list = []
-    try:
-        r = requests.get(google_sheet_url)
-        r.raise_for_status()
-        live_csv_text = r.text
-        
-        # Leer el CSV en un DataFrame de pandas
-        live_df = pd.read_csv(io.StringIO(live_csv_text))
-        
-        # Mapear cabeceras normalizadas a texto de pregunta
-        header_map = {}
-        for header in live_df.columns:
-            norm_header = normalize_string(header)
-            for q_info in questions_list:
-                norm_question = normalize_string(q_info['text'])
-                if norm_question in norm_header:
-                    header_map[header] = (q_info['text'], q_info['section'])
-                    break
-        
-        # Procesar los datos en vivo
-        for _, row in live_df.iterrows():
-            for header, (question_text, section) in header_map.items():
-                answer = row.get(header)
-                if pd.notna(answer):
-                    # Normalizar respuestas "Si" y "Sí"
-                    if normalize_string(str(answer)) == "si":
-                        answer = "Si"
-                    
-                    live_data_list.append({
-                        'section': section,
-                        'question': question_text,
-                        'option': str(answer),
-                        'count': 1
-                    })
-    except Exception as e:
-        print(f"Error cargando o procesando Google Sheet: {e}")
-
-    live_data = pd.DataFrame(live_data_list)
-
-    # --- 4. Combinar datos ---
-    combined_df = pd.concat([local_data, live_data])
-    
-    # Agrupar y sumar
-    if not combined_df.empty:
-        final_counts = combined_df.groupby(['section', 'question', 'option'])['count'].sum().reset_index()
-    else:
-        final_counts = combined_df
-
-    # --- 5. Formatear para los gráficos ---
-    chart_data = {
-        'Problemas': [],
-        'Alimentacion': [],
-        'Salud Fisica': []
-    }
-    total_responses = 0
-
-    # Usar la estructura del JSON para mantener el orden
-    if questions_list: # Solo si el JSON cargó bien
-        first_question_text = questions_list[0]['text']
-        for q_info in questions_list:
-            question_text = q_info['text']
-            section = q_info['section']
-            
-            # Filtrar datos para esta pregunta
-            q_data = final_counts[final_counts['question'] == question_text]
-            
-            if not q_data.empty:
-                labels = q_data['option'].tolist()
-                data = q_data['count'].tolist()
-                
-                # Calcular total (solo para la primera pregunta)
-                if question_text == first_question_text:
-                    total_responses = sum(data)
-                
-                chart_data[section].append({
-                    'title': question_text,
-                    'labels': labels,
-                    'data': data
-                })
-    else: # Fallback si el JSON no carga
-        if not final_counts.empty:
-             total_responses = final_counts[final_counts['question'] == final_counts['question'].iloc[0]]['count'].sum()
-
-
-    return chart_data, total_responses, google_form_url
-
 @login_required
 def vista_resultados(request):
-    """Muestra la página de gráficos, procesando los datos en Python."""
-    try:
-        chart_data, total_responses, gform_url = get_survey_data()
-        context = {
-            'chart_data_json': json.dumps(chart_data), # Convertimos a JSON para pasarlo a JS
-            'total_responses': total_responses,
-            'gform_url': gform_url
-        }
-        return render(request, 'agendamiento/resultados.html', context)
-    except Exception as e:
-        messages.error(request, f"Error al generar los gráficos: {e}")
-        return render(request, 'agendamiento/resultados.html', {'error': str(e)})
+    """
+    Muestra la página de gráficos. La página se encargará
+    de cargar sus propios datos usando JavaScript.
+    """
+    # Ya no pasamos ningún dato, solo renderizamos la plantilla.
+    return render(request, 'agendamiento/resultados.html')
 
 # -----------------------------------------------------------------
-# VISTA 6: Registro de Usuario (NUEVA)
+# VISTA 5: Registro de Usuario
 # -----------------------------------------------------------------
 def vista_registro(request):
     """Muestra y procesa un formulario de registro de nuevos usuarios."""
