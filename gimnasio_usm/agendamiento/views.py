@@ -7,13 +7,10 @@ import datetime
 from django.core.exceptions import ValidationError
 from django.db.models import Count
 from django.conf import settings # Para rutas estáticas
-import pandas as pd # Necesita `pip install pandas`
-import requests     # Necesita `pip install requests`
-import json
-import io
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
-import unicodedata
+from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_POST
 
 # -----------------------------------------------------------------
 # VISTA 1: Página Principal (NUEVA)
@@ -24,125 +21,96 @@ def vista_principal(request):
     return render(request, 'agendamiento/principal.html')
 
 # -----------------------------------------------------------------
-# VISTA 2: Agendamiento (ACTUALIZADA)
+# VISTA 2: Agendamiento (ACTUALIZADA para Cancelar)
 # -----------------------------------------------------------------
 @login_required
 def vista_agendamiento(request):
     
-# --- Lógica para procesar una reserva (POST) ---
     if request.method == "POST":
         try:
             bloque_id = request.POST.get("bloque_id")
             fecha_str = request.POST.get("fecha")
-            
             bloque = BloqueHorario.objects.get(id=bloque_id)
             fecha = datetime.datetime.strptime(fecha_str, "%Y-%m-%d").date()
             usuario = request.user
 
-            # --- INICIO DE LA NUEVA VALIDACIÓN DE TIEMPO ---
-            
-            # 1. Combinamos la fecha seleccionada con la hora de inicio del bloque
+            # Validación de tiempo
             hora_inicio_reserva = datetime.datetime.combine(fecha, bloque.hora_inicio)
-            
-            # 2. Hacemos esa hora "consciente" de la zona horaria (usamos la zona horaria de tus settings)
             try:
-                # Intenta obtener la zona horaria actual de Django
                 current_tz = timezone.get_current_timezone()
                 hora_inicio_reserva_tz = timezone.make_aware(hora_inicio_reserva, current_tz)
             except Exception:
-                # Fallback por si la zona horaria no está bien configurada (usa UTC)
                 hora_inicio_reserva_tz = timezone.make_aware(hora_inicio_reserva, timezone.utc)
-
-            # 3. Obtenemos el momento actual, también consciente de la zona horaria
-            ahora = timezone.now()
-
-            # 4. Comparamos
-            if hora_inicio_reserva_tz < ahora:
+            
+            if hora_inicio_reserva_tz < timezone.now():
                 messages.error(request, "Error: No puedes reservar un bloque de horario que ya ha pasado.")
                 return redirect('vista_agendamiento')
-            
-            # --- FIN DE LA NUEVA VALIDACIÓN DE TIEMPO ---
 
-            # 1. (Validación anterior) Verificar si el usuario ya tiene una reserva
             reserva_existente = Reserva.objects.filter(usuario=usuario, bloque=bloque, fecha=fecha).exists()
             if reserva_existente:
                 messages.error(request, f"Ya tienes una reserva para el {bloque.nombre} el {fecha}.")
                 return redirect('vista_agendamiento')
 
-            # 2. (Validación anterior) La validación de capacidad se hace en el models.py (clean/save)
-            Reserva.objects.create(
-                usuario=usuario,
-                bloque=bloque,
-                fecha=fecha
-            )
+            Reserva.objects.create(usuario=usuario, bloque=bloque, fecha=fecha)
             messages.success(request, f"¡Reserva confirmada! {bloque.nombre} el {fecha}.")
             return redirect('vista_agendamiento')
 
         except ValidationError as e: 
-            error_message = ". ".join(e.messages)
-            messages.error(request, f"Error al reservar: {error_message}")
+            messages.error(request, f"Error al reservar: {'. '.join(e.messages)}")
             return redirect('vista_agendamiento')
         except Exception as e:
             messages.error(request, f"Ocurrió un error inesperado: {e}")
             return redirect('vista_agendamiento')
 
-    # --- Lógica para mostrar la página (GET) ---
+    # GET: Mostrar Horario
     hoy = timezone.localdate()
     ahora = timezone.now()
     lunes_de_esta_semana = hoy - datetime.timedelta(days=hoy.weekday())
     dias_de_la_semana = [lunes_de_esta_semana + datetime.timedelta(days=i) for i in range(5)]
     bloques_horarios = BloqueHorario.objects.all().order_by('hora_inicio')
 
-    reservas_usuario = Reserva.objects.filter(
+    # --- CAMBIO CLAVE: Obtenemos el objeto reserva completo, no solo IDs ---
+    reservas_usuario_qs = Reserva.objects.filter(
         usuario=request.user,
         fecha__in=dias_de_la_semana
-    ).values_list('bloque_id', 'fecha')
-    
-    set_reservas_usuario = set((r[0], r[1]) for r in reservas_usuario)
+    )
+    # Mapa para encontrar rápido el ID de reserva: {(bloque_id, fecha): reserva_id}
+    mapa_reservas_usuario = {(r.bloque_id, r.fecha): r.id for r in reservas_usuario_qs}
+    # ---------------------------------------------------------------------
 
-    todas_las_reservas = Reserva.objects.filter(
-        fecha__in=dias_de_la_semana
-    ).values('bloque', 'fecha').annotate(conteo=Count('id'))
-
-    conteo_reservas = {
-        (reserva['bloque'], reserva['fecha']): reserva['conteo']
-        for reserva in todas_las_reservas
-    }
+    todas_las_reservas = Reserva.objects.filter(fecha__in=dias_de_la_semana).values('bloque', 'fecha').annotate(conteo=Count('id'))
+    conteo_reservas = {(reserva['bloque'], reserva['fecha']): reserva['conteo'] for reserva in todas_las_reservas}
 
     datos_para_plantilla = []
-    
     for bloque in bloques_horarios:
         datos_de_la_fila = []
         for dia in dias_de_la_semana:
             reservas_count = conteo_reservas.get((bloque.id, dia), 0)
             cupos_disponibles = bloque.capacidad_maxima - reservas_count
-            reservado_por_usuario = (bloque.id, dia) in set_reservas_usuario
+            
+            # Buscamos si el usuario tiene reserva aquí
+            reserva_id = mapa_reservas_usuario.get((bloque.id, dia))
             
             hora_inicio_reserva = datetime.datetime.combine(dia, bloque.hora_inicio)
             try:
-                current_tz = timezone.get_current_timezone()
-                hora_inicio_reserva_tz = timezone.make_aware(hora_inicio_reserva, current_tz)
-            except Exception:
+                hora_inicio_reserva_tz = timezone.make_aware(hora_inicio_reserva, timezone.get_current_timezone())
+            except:
                 hora_inicio_reserva_tz = timezone.make_aware(hora_inicio_reserva, timezone.utc)
 
             es_pasado = hora_inicio_reserva_tz < ahora
 
             datos_de_la_fila.append({
                 'cupos': cupos_disponibles,
-                'reservado': reservado_por_usuario,
+                'reserva_id': reserva_id, # Pasamos el ID (o None)
                 'fecha_str': dia.isoformat(),
                 'es_pasado': es_pasado
-            
             })
         datos_para_plantilla.append((bloque, datos_de_la_fila))
 
-    context = {
+    return render(request, 'agendamiento/agendar.html', {
         'dias_de_la_semana': dias_de_la_semana,
         'datos_para_plantilla': datos_para_plantilla, 
-    }
-    
-    return render(request, 'agendamiento/agendar.html', context)
-
+    })
 # -----------------------------------------------------------------
 # VISTA 3: Consejos
 # -----------------------------------------------------------------
@@ -192,3 +160,32 @@ def vista_registro(request):
         
     # Muestra la plantilla 'registro.html' con el formulario
     return render(request, 'agendamiento/registro.html', {'form': form})
+
+# -----------------------------------------------------------------
+# VISTA 6: Cancelar Reserva
+# -----------------------------------------------------------------
+
+@login_required
+@require_POST # Solo permite peticiones POST para mayor seguridad
+def cancelar_reserva(request, reserva_id):
+    """
+    Permite a un usuario cancelar una de sus propias reservas.
+    """
+    # Buscamos la reserva. Si no existe o no pertenece al usuario actual, da error 404.
+    reserva = get_object_or_404(Reserva, id=reserva_id, usuario=request.user)
+    
+    # Opcional: Validar que la reserva sea futura (para no cancelar reservas pasadas)
+    # hoy = timezone.localdate()
+    # if reserva.fecha < hoy:
+    #     messages.error(request, "No puedes cancelar reservas de días pasados.")
+    #     return redirect('vista_agendamiento')
+
+    # Guardamos los datos para el mensaje de confirmación antes de borrar
+    bloque_nombre = reserva.bloque.nombre
+    fecha_reserva = reserva.fecha
+
+    # Borramos la reserva
+    reserva.delete()
+    
+    messages.success(request, f"Reserva para {bloque_nombre} el {fecha_reserva} cancelada exitosamente.")
+    return redirect('vista_agendamiento')
