@@ -1,3 +1,5 @@
+{% load static %} 
+
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -5,44 +7,70 @@
 <style>
     body {
         font-family: 'Inter', sans-serif;
+        background-image: url("{% static 'img/fondo_gimnasio.png' %}"); 
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
     }
 </style>
 
-<body class="bg-gray-100">
-    <div class="container mx-auto p-8">
-        <div class="flex justify-between items-center mb-10">
-            <h1 class="text-3xl font-bold">Agendamiento Gimnasio USM San Joaquín</h1>
-            <div class="text-right">
-                <span class="text-gray-700">Hola, <strong>{{ user.username }}</strong></span>
+<body class="min-h-screen flex items-center justify-center">
+    
+    {# Capa translúcida para que el texto sea legible. Puedes ajustar bg-white/80 (80% opacidad blanca) #}
+    <div class="fixed inset-0 bg-white/60 -z-10 backdrop-blur-sm"></div>
 
-                <form action="{% url 'logout' %}" method="post" class="inline ml-4">
-                    {% csrf_token %}
-                    <button type="submit"
-                        class="text-sm text-blue-500 hover:text-blue-700 bg-transparent p-0 border-0 cursor-pointer">
-                        Cerrar Sesión
-                    </button>
-                </form>
-
-            </div>
+    <div class="container mx-auto p-8 relative z-10">
+        
+        <div class="absolute top-8 right-8 text-right">
+             <span>
+                Hola, <strong>{{ user.username }}</strong>
+            </span>
+            <form action="{% url 'logout' %}" method="post" class="inline ml-4">
+                {% csrf_token %}
+                <button type="submit"
+                    class="text-sm text-blue-600 hover:text-blue-800 bg-white/80 px-3 py-1 rounded-full shadow-sm font-medium transition-colors">
+                    Cerrar Sesión
+                </button>
+            </form>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="text-center mb-12 mt-16 md:mt-0">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+                Gimnasio USM San Joaquín
+            </h1>
+            <p class="text-xl text-gray-600 font-medium">
+                Tu portal de agendamiento y bienestar en la USM.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <a href="{% url 'vista_agendamiento' %}"
-                class="block bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+                class="block bg-white p-8 rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 border border-gray-100">
                 <div class="text-center">
-                    <span class="text-6xl">🏋️</span>
-                    <h2 class="mt-4 text-2xl font-bold text-gray-800">Agendar Hora</h2>
-                    <p class="mt-2 text-gray-600">Reserva tu bloque de horario para entrenar en el gimnasio.</p>
+                    <span class="text-7xl mb-4 block">🏋️</span>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-3">Agendar Hora</h2>
+                    <p class="text-gray-600">Reserva tu bloque de horario para entrenar en el gimnasio.</p>
+                    <div class="mt-6 inline-flex items-center text-blue-600 font-semibold group">
+                        Ir a Agendar 
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 transform group-hover:translate-x-1 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
                 </div>
             </a>
 
             <a href="{% url 'vista_consejos' %}"
-                class="block bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+                class="block bg-white p-8 rounded-2xl shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 border border-gray-100">
                 <div class="text-center">
-                    <span class="text-6xl">💡</span>
-                    <h2 class="mt-4 text-2xl font-bold text-gray-800">Consejos y Resultados</h2>
-                    <p class="mt-2 text-gray-600">Revisa los consejos de bienestar y mira los resultados de la encuesta.
-                    </p>
+                    <span class="text-7xl mb-4 block">💡</span>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-3">Consejos y Resultados</h2>
+                    <p class="text-gray-600">Revisa los consejos de bienestar y mira los resultados de la encuesta.</p>
+                    <div class="mt-6 inline-flex items-center text-green-600 font-semibold group">
+                        Ver Consejos
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 transform group-hover:translate-x-1 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
                 </div>
             </a>
         </div>
