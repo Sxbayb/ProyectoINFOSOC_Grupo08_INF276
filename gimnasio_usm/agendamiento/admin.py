@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import BloqueHorario, Reserva
+from .models import BloqueHorario, Reserva, Sugerencia
 
 # Opcional, pero muy recomendado para una mejor vista:
 class ReservaAdmin(admin.ModelAdmin):
@@ -11,3 +11,4 @@ class ReservaAdmin(admin.ModelAdmin):
 # Registra tus modelos en el admin
 admin.site.register(BloqueHorario)
 admin.site.register(Reserva, ReservaAdmin) # Registra Reservas usando la vista personalizada
+admin.site.register(Sugerencia)

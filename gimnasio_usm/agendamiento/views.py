@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from .models import BloqueHorario, Reserva
+from .models import BloqueHorario, Reserva, Sugerencia
 from django.contrib import messages
 from django.utils import timezone
 import datetime
@@ -189,3 +189,39 @@ def cancelar_reserva(request, reserva_id):
     
     messages.success(request, f"Reserva para {bloque_nombre} el {fecha_reserva} cancelada exitosamente.")
     return redirect('vista_agendamiento')
+
+# -----------------------------------------------------------------
+# BUZON DE SUGERENCIAS
+# -----------------------------------------------------------------
+@login_required
+def buzon_sugerencias(request):
+    
+    # --- LÓGICA DEL POST (CUANDO EL USUARIO ENVÍA EL FORMULARIO) ---
+    if request.method == 'POST':
+        # 1. Obtener el texto del formulario.
+        #    El 'name' de tu <textarea> en el HTML era "sugerencia"
+        texto_sugerencia = request.POST.get('sugerencia')
+
+        # 2. Validación simple (que no esté vacío)
+        if texto_sugerencia:
+            # 3. Crear y guardar el objeto en la Base de Datos
+            Sugerencia.objects.create(
+                usuario=request.user,  # Asignamos el usuario que está logueado
+                texto=texto_sugerencia
+            )
+            
+            # 4. Enviar un mensaje de éxito
+            messages.success(request, '¡Muchas gracias! Tu sugerencia ha sido enviada. 🦾')
+            
+            # 5. Redirigir al 'home'. Esto evita que se envíe el formulario 
+            #    dos veces si el usuario recarga la página.
+            return redirect('vista_principal') # Asegúrate de que tu URL de 'home' se llame 'home'
+        
+        else:
+            # Si el usuario envió el formulario vacío
+            messages.error(request, 'Por favor, escribe tu sugerencia antes de enviarla.')
+            # No redirigimos, solo volvemos a mostrar el formulario (con el mensaje de error)
+
+    # --- LÓGICA DEL GET (CUANDO EL USUARIO SOLO VISITA LA PÁGINA) ---
+    # Si no es POST, es GET, así que solo mostramos la página normalmente.
+    return render(request, 'sugerencias.html')

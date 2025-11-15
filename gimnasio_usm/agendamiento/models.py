@@ -60,3 +60,20 @@ class Reserva(models.Model):
         # Ejecutar la validación 'clean' antes de guardar
         self.clean()
         super().save(*args, **kwargs)
+
+class Sugerencia(models.Model):
+    # Usamos ForeignKey para saber QUÉ usuario envió la sugerencia
+    # "on_delete=models.SET_NULL" significa que si se borra el usuario,
+    # la sugerencia no se borra, solo queda como "Anónimo".
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Usamos TextField para textos largos
+    texto = models.TextField()
+    
+    # "auto_now_add=True" guarda automáticamente la fecha y hora de creación
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        # Esto es para que se vea bonito en el panel de administrador
+        user_display = self.usuario.username if self.usuario else 'Anónimo'
+        return f'Sugerencia de {user_display} ({self.fecha_creacion.strftime("%Y-%m-%d")})'
